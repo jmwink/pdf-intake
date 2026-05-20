@@ -1,0 +1,21 @@
+# pdf-intake user config — copy to ~/.config/pdf-intake/config.toml and edit.
+# All keys are optional; missing keys fall back to the defaults in pdf_intake/config.py.
+
+# Where the PDF library lives on disk. Default is `~/Documents/PDFLibrary`
+# if this key is omitted. Point at a Dropbox/iCloud/Syncthing path if you
+# want entries to propagate across machines. `~` is expanded.
+library_root = "~/Documents/PDFLibrary"
+
+# Default Claude model for metadata extraction and summaries.
+# Override per-run with `--model opus`.
+default_model = "claude-sonnet-4-6"
+
+# Guard thresholds for the conversion step. A PDF whose markdown output
+# falls below EITHER threshold is treated as unreadable (likely corrupt,
+# password-protected, or image-only where even Tesseract failed).
+extraction_min_chars = 500
+extraction_min_words_per_page = 50
+
+# Name of the environment variable that holds the Anthropic API key.
+# The key itself is never written here.
+anthropic_api_key_env = "ANTHROPIC_API_KEY"

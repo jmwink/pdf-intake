@@ -1,0 +1,18 @@
+[project]
+name = "pdf-intake"
+version = "0.0.1"
+description = "Local PDF intake and summary pipeline"
+requires-python = ">=3.11"
+dependencies = [
+    "pymupdf4llm ~= 1.27.2",
+    "pymupdf ~= 1.27.2",
+    "anthropic ~= 0.96.0",
+    "bibtexparser >= 2.0.0b9, < 3",
+]
+
+[project.scripts]
+pdf-intake = "pdf_intake.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
