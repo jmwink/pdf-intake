@@ -57,6 +57,19 @@ export ANTHROPIC_API_KEY=sk-ant-…
 
 Add it to your shell rc so it persists across sessions.
 
+## Claude skill (optional)
+
+The repo ships a `pdf-inbox` skill at `skills/pdf-inbox/SKILL.md` that drives `pdf-intake` over a recent-Downloads sweep from inside Claude Code. To install it, symlink the skill directory into Claude's skills tree:
+
+```bash
+mkdir -p ~/.claude/skills
+ln -s "$PWD/skills/pdf-inbox" ~/.claude/skills/pdf-inbox
+```
+
+(Run from the repo root.) After this, `/pdf-inbox` is available in Claude Code. Editing the SKILL.md in the repo immediately updates the live skill — one source of truth.
+
+If you don't use Claude Code, skip this step; the CLI works without it.
+
 ## Smoke test
 
 ```
