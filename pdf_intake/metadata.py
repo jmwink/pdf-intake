@@ -180,7 +180,11 @@ def extract(
         messages=[{"role": "user", "content": user_content}],
     )
 
-    raw = response.content[0].text.strip()
+    # Thinking-capable models put a ThinkingBlock first, so content[0] is not
+    # reliably the text. Concatenate every text block instead of indexing.
+    raw = "".join(
+        block.text for block in response.content if block.type == "text"
+    ).strip()
     cleaned = _strip_code_fences(raw)
 
     try:

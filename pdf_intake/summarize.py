@@ -162,7 +162,13 @@ def summarize(slug_or_path: str | Path, *, cfg: Config, model: str | None = None
         ],
     )
 
-    summary_text = response.content[0].text
+    # Thinking-capable models put a ThinkingBlock first, so content[0] is not
+    # reliably the text. Concatenate every text block instead of indexing.
+    summary_text = "".join(
+        block.text for block in response.content if block.type == "text"
+    )
+    if not summary_text.strip():
+        raise RuntimeError("model response contained no text block")
     summary_path = slug_dir / f"{slug}.summary.md"
     _atomic_write(summary_path, summary_text)
 
