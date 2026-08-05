@@ -146,6 +146,24 @@ def convert(
     words_per_page = word_count / page_count if page_count else 0
 
     if non_ws_chars < min_chars or words_per_page < min_words_per_page:
+        # pymupdf4llm runs its own OCR on image-dominated pages. On a PDF that
+        # was scanned and OCR'd before it reached us — a page image with a good
+        # text layer underneath — that re-OCR can score far worse than the text
+        # already present, and needs_ocr() won't catch it because no page is
+        # actually empty. Consult the raw text layer before giving up.
+        if not use_ocr:
+            raw_pages = _raw_per_page(doc)
+            if not keep_pagination:
+                raw_pages = _strip_repeating_headers_footers(raw_pages)
+            raw_md = "\n\n".join(p.strip() for p in raw_pages if p.strip())
+            raw_chars = sum(1 for c in raw_md if not c.isspace())
+            raw_wpp = len(raw_md.split()) / page_count if page_count else 0
+            if raw_chars >= min_chars and raw_wpp >= min_words_per_page:
+                md = raw_md
+                non_ws_chars = raw_chars
+                words_per_page = raw_wpp
+
+    if non_ws_chars < min_chars or words_per_page < min_words_per_page:
         raise ScannedPDFError(
             f"extracted {non_ws_chars} non-whitespace chars, "
             f"{words_per_page:.1f} words/page across {page_count} pages"
