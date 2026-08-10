@@ -15,7 +15,23 @@ MAX_TOKENS = 4096
 CATEGORIES = ("teaching", "research", "curiosity", "professional")
 
 # Pricing in USD per million tokens. Refresh when Anthropic pricing changes.
+#
+# ⚠ A model missing from this table is NOT an error: _estimate_cost() below
+# returns None on a miss, so `pdf-intake cost` silently reports nothing for it.
+# Whenever config.toml's default_model changes, add the matching entry HERE in
+# the same commit — otherwise cost tracking stops with no failure to notice.
+# Convention: cache_write_5m = 1.25x input, cache_read = 0.10x input.
 PRICING = {
+    "claude-sonnet-5": {
+        # Standard rates. An introductory $2.00 / $10.00 applies through
+        # 2026-08-31; the standard figures are used here so the estimate is
+        # conservative during the intro window and correct from 2026-09-01,
+        # rather than needing an edit on that date.
+        "input": 3.00,
+        "output": 15.00,
+        "cache_write_5m": 3.75,
+        "cache_read": 0.30,
+    },
     "claude-sonnet-4-6": {
         "input": 3.00,
         "output": 15.00,
