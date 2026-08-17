@@ -204,7 +204,7 @@ def _cmd_inspect(args: argparse.Namespace) -> int:
         "content_hash": hash_,
         "page_count": result.page_count,
         "preview_chars": min(len(result.markdown), MAX_INPUT_CHARS),
-        "ocr_source": "ocrmypdf" if result.used_ocr else "born_digital",
+        "ocr_source": result.text_source,
         "already_ingested": already,
         "metadata": meta,
         "validation": errors,
@@ -273,7 +273,7 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
 
     md = result.markdown
     page_count = result.page_count
-    ocr_source = "ocrmypdf" if result.used_ocr else "born_digital"
+    ocr_source = result.text_source
 
     if args.metadata_json:
         try:

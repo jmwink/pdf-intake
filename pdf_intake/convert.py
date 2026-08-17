@@ -4,7 +4,7 @@ import sys
 from collections import Counter
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
+from typing import Literal, Optional
 
 import pymupdf
 import pymupdf4llm
@@ -16,6 +16,18 @@ from pdf_intake.ocr import run_ocrmypdf
 HEADER_FOOTER_MIN_PAGES = 5  # heuristic unreliable on short documents
 HEADER_FOOTER_PAGE_RATIO = 0.5  # drop lines appearing on > 50% of pages
 
+# Where the text in ConvertResult.markdown actually came from. This is provenance
+# metadata: it ends up in each library record's `ocr_source` and in the index, and
+# its only job is to be true. Defined once, here, because it previously existed
+# only as an inline ternary in two places in cli.py — which is why the raw-text-layer
+# path below had nowhere to report itself and was recorded as "born_digital".
+TextSource = Literal[
+    "born_digital",      # real text layer, no OCR anywhere in the chain
+    "ocrmypdf",          # pages were empty; we ran ocrmypdf over the PDF
+    "raw_text_layer",    # a scan that arrived already OCR'd; we used its own text layer
+    "pymupdf4llm_ocr",   # --no-ocr, but pages were empty: pymupdf4llm's built-in OCR
+]
+
 
 @dataclass
 class ConvertResult:
@@ -23,6 +35,7 @@ class ConvertResult:
     used_ocr: bool
     ocr_pdf_path: Optional[Path]
     page_count: int
+    text_source: TextSource
 
 
 @contextlib.contextmanager
@@ -120,20 +133,29 @@ def convert(
 ) -> ConvertResult:
     doc = pymupdf.open(pdf_path)
     page_count = doc.page_count
-    use_ocr = needs_ocr(doc) and not no_ocr
+    # Capture this before `doc` is rebound to the ocrmypdf output below — after
+    # that, needs_ocr() would be answering about the OCR'd copy, not the original.
+    has_empty_pages = needs_ocr(doc)
+    use_ocr = has_empty_pages and not no_ocr
     ocr_pdf_path: Optional[Path] = None
+    text_source: TextSource
 
     if use_ocr:
         ocr_pdf_path = run_ocrmypdf(pdf_path)
         doc = pymupdf.open(ocr_pdf_path)
         pages = _raw_per_page(doc)
+        text_source = "ocrmypdf"
     else:
-        if needs_ocr(doc) and no_ocr:
+        if has_empty_pages:
+            # use_ocr is False with empty pages only when --no-ocr was passed.
             print(
                 "warning: --no-ocr set; scanned pages will read as column-jumbled "
                 "via pymupdf4llm's built-in path",
                 file=sys.stderr,
             )
+            text_source = "pymupdf4llm_ocr"
+        else:
+            text_source = "born_digital"
         pages = _pymupdf4llm_per_page(doc)
 
     if not keep_pagination:
@@ -162,6 +184,10 @@ def convert(
                 md = raw_md
                 non_ws_chars = raw_chars
                 words_per_page = raw_wpp
+                # The text we are keeping is the scan's own pre-existing OCR layer,
+                # not pymupdf4llm's output and not ours. Say so — this is the case
+                # that used to be recorded as "born_digital".
+                text_source = "raw_text_layer"
 
     if non_ws_chars < min_chars or words_per_page < min_words_per_page:
         raise ScannedPDFError(
@@ -174,4 +200,5 @@ def convert(
         used_ocr=use_ocr,
         ocr_pdf_path=ocr_pdf_path,
         page_count=page_count,
+        text_source=text_source,
     )
